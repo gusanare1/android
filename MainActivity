@@ -1,0 +1,398 @@
+package com.example.lenov.addcontacto.gus;
+
+import android.Manifest;
+import android.app.Activity;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.content.OperationApplicationException;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.RemoteException;
+import android.provider.ContactsContract;
+import android.os.Bundle;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+
+import com.example.lenov.addcontacto.R;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+public class MainActivity extends Activity {
+
+
+    private EditText numero;
+    private final int MAX = 7;
+    private String pathName = "";
+    private ArrayList<String> lista;
+    private File archivo;
+    private Button button_subir;
+    private EditText path;
+    private Uri pathUri;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.layout);
+        pathName = Environment.getDataDirectory() + "/Datos/directorio.csv";
+
+        button_subir = (Button)findViewById(R.id.pick_up);
+
+        path = (EditText) findViewById(R.id.numero);
+
+        button_subir.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("text/*");
+                startActivityForResult(Intent.createChooser(intent, "Open CSV"), 12);
+
+            }
+        });
+
+        //requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
+
+        requestPermissions(new String[]{Manifest.permission.WRITE_CONTACTS}, PERMISSIONS_REQUEST_WRITE_CONTACTS);
+
+
+
+
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+            Toast.makeText(this,data.getData().getPath(),Toast.LENGTH_SHORT).show();
+
+            String filePath = null;
+            Uri _uri = data.getData();
+            Log.e("AA","URI = "+ _uri);
+
+/*            if (_uri != null && "content".equals(_uri.getScheme())) {
+                Cursor cursor = this.getContentResolver().query(_uri, new String[] { android.provider.MediaStore.Images.ImageColumns.DATA }, null, null, null);
+                cursor.moveToFirst();
+                filePath = cursor.getString(0);
+                cursor.close();
+            } else {
+                filePath = _uri.getPath();
+            }
+      */      pathName = _uri.getPath();
+      pathUri = _uri;
+            Log.e("AA","Chosen path = "+ pathName);
+        Log.e("AA","Chosen encoded path = "+ pathUri.getEncodedPath());
+        Log.e("AA","Chosen query = "+ pathUri.getQuery());
+
+        Log.e("AA","Chosen encoded query= "+ pathUri.getEncodedQuery());
+        Log.e("AA","Chosen toString= "+ pathUri.toString());
+
+
+        //TODO handle your request here
+
+
+    }
+
+
+    public String getPath(Uri uri)
+    {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
+        if (cursor == null) return null;
+        int column_index =             cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        String s=cursor.getString(column_index);
+        cursor.close();
+        Log.e("*****",s);
+        return s;
+    }
+
+
+    private String getSourceCode(String sURL)
+    {
+    try {
+        URL url = new URL(sURL);
+        HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
+        //set http request headers
+        httpCon.addRequestProperty("Host", "www.cumhuriyet.com.tr");
+        httpCon.addRequestProperty("Connection", "keep-alive");
+        httpCon.addRequestProperty("Cache-Control", "max-age=0");
+        httpCon.addRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        httpCon.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36");
+        httpCon.addRequestProperty("Accept-Encoding", "gzip,deflate,sdch");
+        httpCon.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
+        //httpCon.addRequestProperty("Cookie", "JSESSIONID=EC0F373FCC023CD3B8B9C1E2E2F7606C; lang=tr; __utma=169322547.1217782332.1386173665.1386173665.1386173665.1; __utmb=169322547.1.10.1386173665; __utmc=169322547; __utmz=169322547.1386173665.1.1.utmcsr=stackoverflow.com|utmccn=(referral)|utmcmd=referral|utmcct=/questions/8616781/how-to-get-a-web-pages-source-code-from-java; __gads=ID=3ab4e50d8713e391:T=1386173664:S=ALNI_Mb8N_wW0xS_wRa68vhR0gTRl8MwFA; scrElm=body");
+        HttpURLConnection.setFollowRedirects(false);
+        httpCon.setInstanceFollowRedirects(false);
+        httpCon.setDoOutput(true);
+        httpCon.setUseCaches(true);
+
+        httpCon.setRequestMethod("GET");
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(httpCon.getInputStream(), "UTF-8"));
+        String inputLine;
+        StringBuilder a = new StringBuilder();
+        while ((inputLine = in.readLine()) != null)
+            a.append(inputLine);
+        in.close();
+
+        System.out.println(a.toString());
+
+        httpCon.disconnect();
+        return a.toString();
+    }
+    catch (Exception e)
+    {System.err.println("ERORR");}
+    return "";
+    }
+
+
+
+    public void crear(View v)
+    {
+        SharedPreferences sharedPref= getSharedPreferences("myPref", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor=sharedPref.edit();
+
+        String num_last=sharedPref.getString("num_last","0");
+
+
+        String listaString= getSourceCode("http://localhost:5000/data.htm?num="+num_last);
+
+        lista = new ArrayList<>();
+
+        if(listaString!="")
+        {
+            //String num_first=sharedPref.getString("num_first","0");
+            String[] lista_ = listaString.split(";");
+            for (int i=0;i<lista_.length;i++) {
+                lista.add(lista_[i]);
+                Toast.makeText(this, "Contacto: "+lista_[i] , Toast.LENGTH_SHORT).show();
+            }
+            //crecion lista
+
+            String last_number = lista.get(lista.size()-1);
+            String first_number = lista.get(0);
+            // Save your string in SharedPref
+            editor.putString("num_last", last_number.substring(1, last_number.length()));
+            editor.putString("num_first", first_number.substring(1, first_number.length()));
+            editor.commit();
+        }
+
+
+        /*
+x
+            try{
+                InputStream inputStream = getContentResolver().openInputStream(pathUri);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        inputStream));
+
+                String line;
+
+                lista = new ArrayList<>();
+
+                String record;
+                while ((line = reader.readLine()) != null) {
+                    lista.add("+"+line);
+                }
+                reader.close();
+                inputStream.close();
+
+            }
+            catch (Exception e)
+            {
+
+                Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show();
+            }
+
+ */
+
+        for(int i=0;i<lista.size();i++)
+        {
+            String nu = lista.get(i);
+            Log.e("Con:","-"+nu+"-");
+            //https://stackoverflow.com/questions/8414192/how-to-create-a-contact-programmatically
+            /*
+            ContentValues values = new ContentValues();
+            values.put(ContactsContract.Data.RAW_CONTACT_ID, Integer.parseInt(nu.substring(1,nu.length())));
+            values.put(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE);
+            values.put(ContactsContract.CommonDataKinds.Phone.NUMBER, nu);
+            values.put(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM);
+            values.put(ContactsContract.CommonDataKinds.Phone.LABEL, nu);
+            Uri dataUri = getContentResolver().insert(android.provider.ContactsContract.Data.CONTENT_URI, values);
+            */
+//https://stackoverflow.com/questions/4744187/how-to-add-new-contacts-in-android
+            ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+            int rawContactInsertIndex = ops.size();
+
+            ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
+                    .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null)
+                    .withValue(ContactsContract.RawContacts.ACCOUNT_NAME, null).build());
+            ops.add(ContentProviderOperation
+                    .newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID,rawContactInsertIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, nu) // Name of the person
+                    .build());
+            ops.add(ContentProviderOperation
+                    .newInsert(ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(
+                            ContactsContract.Data.RAW_CONTACT_ID,   rawContactInsertIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, nu) // Number of the person
+                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE).build()); // Type of mobile number
+            try
+            {
+                ContentProviderResult[] res = getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
+            }
+            catch (RemoteException e)
+            {
+                // error
+            }
+            catch (OperationApplicationException e)
+            {
+                // error
+            }
+
+          }
+        Toast.makeText(this, "CREAR TODOS LOS CONTACTOS ("+lista.size()+")", Toast.LENGTH_SHORT).show();
+    }
+
+    private static final int PERMISSIONS_REQUEST_READ_CONTACTS = 100;
+    private static final int PERMISSIONS_REQUEST_WRITE_CONTACTS = 101;
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+            } else {
+                Toast.makeText(this, "Until you grant the permission, we canot display the names", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void borrarNumeroEnArchivo(String numeroSinPlus) {
+        String charset = "UTF-8";
+        try {
+            File file = new File(pathName);
+            File temp = File.createTempFile("directorio", ".csv", file.getParentFile());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), charset));
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(temp), charset));
+            for (String line; (line = reader.readLine()) != null;) {
+                line = line.replace(numeroSinPlus, "");
+                writer.println(line);
+            }
+            reader.close();
+            writer.close();
+            file.delete();
+            temp.renameTo(file);
+        }
+        catch (Exception e)
+        {
+            Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+
+
+    public void pickUp(View v)
+    {
+
+    }
+
+        public void borrar(View v)
+    {
+        //traer de base los 7 contactos ultimos
+        SharedPreferences sharedPref= getSharedPreferences("myPref", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor=sharedPref.edit();
+
+        String num_last=sharedPref.getString("num_last","0");
+
+        //me da los 7 ultimos [...n,n+1,n+2,n+3...,n+7*ULTIMO GUARDADO*,...]
+        String listaString= getSourceCode("http://localhost:5000/remo.htm?num="+num_last);
+
+        lista = new ArrayList<>();
+
+        if(listaString!="")
+        {
+            String[] lista_ = listaString.split(";");
+            for (int i=0;i<lista_.length;i++) {
+                lista.add(lista_[i]);
+                Toast.makeText(this, "Contacto: "+lista_[i] , Toast.LENGTH_SHORT).show();
+            }
+
+            String last_number = lista.get(lista.size()-1);
+            String first_number = lista.get(0);
+            // Save your string in SharedPref
+            editor.putString("num_last", last_number.substring(1, last_number.length()));
+            editor.commit();
+        }
+
+
+        for (int i=0;i<MAX;i++)
+        {
+            borrarEnCelular(lista.get(i));
+            lista.remove(i);
+        }
+    }
+
+
+    /**
+     *
+     * @param phone "+593..."
+     */
+    private void borrarEnCelular(String phone)
+    {
+
+
+        String name = phone;
+        Uri contactUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phone));
+        Cursor cur = this.getContentResolver().query(contactUri, null, null, null, null);
+        try {
+            if (cur.moveToFirst()) {
+                do {
+                    if (cur.getString(cur.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME)).equalsIgnoreCase(name)) {
+                        String lookupKey = cur.getString(cur.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
+                        Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey);
+                        this.getContentResolver().delete(uri, null, null);
+                    }
+
+                } while (cur.moveToNext());
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getStackTrace());
+            Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show();
+        } finally {
+            cur.close();
+        }
+    }
+
+
+
+
+}
